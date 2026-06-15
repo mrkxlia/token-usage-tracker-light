@@ -469,35 +469,81 @@ function New-ReportHtml {
     $json = $json.Replace('</', '<\/').Replace('<!--', '<\!--')
 
     $css = @'
-:root{--bg:#0f1115;--card:#181b22;--fg:#e6e8eb;--muted:#9aa3ad;--line:#2a2f3a;--bar:#3b82f6;--bar2:#10b981;}
-*{box-sizing:border-box}body{margin:0;font:14px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--fg)}
-header{padding:16px 20px;border-bottom:1px solid var(--line)}
-h1{font-size:18px;margin:0 0 4px}.meta{color:var(--muted);font-size:12px}
-.wrap{padding:16px 20px;max-width:1200px;margin:0 auto}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px}
-.card .k{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
-.card .v{font-size:20px;font-weight:600;margin-top:4px;word-break:break-all}
+:root{
+--bg:#0f1115;--card:#181b22;--fg:#e6e8eb;--muted:#9aa3ad;--line:#2a2f3a;
+--accent:#3b82f6;--accent2:#10b981;--un:#f59e0b;
+--th-bg:#10131a;--code-bg:#10131a;--grid:#2a2f3a;
+--bar-fill:rgba(59,130,246,.30);--row-hover:rgba(59,130,246,.12);
+--zebra:rgba(255,255,255,.025);--total-bg:rgba(255,255,255,.06);
+--chip-bg:rgba(255,255,255,.06);--shadow:0 1px 2px rgba(0,0,0,.40);
+}
+:root[data-theme="light"]{
+--bg:#f5f7fa;--card:#ffffff;--fg:#1b1f24;--muted:#5b6571;--line:#e3e8ef;
+--accent:#2563eb;--accent2:#059669;--un:#b45309;
+--th-bg:#eef2f7;--code-bg:#eef2f7;--grid:#e3e8ef;
+--bar-fill:rgba(37,99,235,.16);--row-hover:rgba(37,99,235,.08);
+--zebra:rgba(15,23,42,.025);--total-bg:rgba(15,23,42,.05);
+--chip-bg:rgba(15,23,42,.05);--shadow:0 1px 3px rgba(15,23,42,.10);
+}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--fg);transition:background .2s ease,color .2s ease}
+header{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.head-main{min-width:0}
+h1{font-size:18px;margin:0 0 8px;letter-spacing:.01em}
+.meta{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:var(--chip-bg);color:var(--muted);font-size:11px;border-radius:999px;padding:3px 10px;white-space:nowrap}
+.chip b{color:var(--fg);font-weight:600;margin-left:2px}
+.icon-btn{flex:none;width:38px;height:38px;display:inline-flex;align-items:center;justify-content:center;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:10px;cursor:pointer;box-shadow:var(--shadow)}
+.icon-btn:hover{border-color:var(--accent)}
+.icon-btn svg{width:18px;height:18px}
+.wrap{padding:20px;max-width:1200px;margin:0 auto}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:var(--shadow)}
+.card .k{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+.card .v{font-size:22px;font-weight:650;margin-top:6px;word-break:break-all;font-variant-numeric:tabular-nums}
+.card.primary{grid-column:span 2;border-color:var(--accent)}
+.card.primary .k{color:var(--accent)}
+.card.primary .v{font-size:30px}
+.card .v.accent-un{color:var(--un)}
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.chartbox{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:var(--shadow);min-width:0}
+.chartbox h2{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 10px;font-weight:600}
+.chartbox svg{display:block;width:100%;height:auto}
+.chart-empty{color:var(--muted);font-size:12px;padding:24px 0;text-align:center}
 .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
 .tabs{display:flex;flex-wrap:wrap;gap:6px}
-.tab,.toggle{background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer;font:inherit}
-.tab.active{background:var(--bar);border-color:var(--bar)}
-.toggle.active{background:var(--bar2);border-color:var(--bar2)}
-table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
-th,td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+.tab,.toggle{background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:7px 13px;cursor:pointer;font:inherit;box-shadow:var(--shadow)}
+.tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.toggle.active{background:var(--accent2);border-color:var(--accent2);color:#fff}
+.search{margin-left:auto}
+.search input{background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:7px 11px;font:inherit;min-width:200px}
+.search input::placeholder{color:var(--muted)}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+.tablewrap{max-height:72vh;overflow:auto;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
+table{width:100%;border-collapse:separate;border-spacing:0;background:var(--card)}
+th,td{padding:9px 11px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap;font-variant-numeric:tabular-nums}
 th:first-child,td:first-child{text-align:left;white-space:normal;word-break:break-all;max-width:380px}
-thead th{position:sticky;top:0;background:#10131a;cursor:pointer;user-select:none;font-size:12px;color:var(--muted)}
+thead th{position:sticky;top:0;background:var(--th-bg);cursor:pointer;user-select:none;font-size:12px;color:var(--muted);z-index:2}
 thead th:hover{color:var(--fg)}
-tbody tr:nth-child(odd){background:rgba(255,255,255,.02)}
-tbody tr:hover{background:rgba(59,130,246,.12)}
-tr.total{font-weight:700;background:rgba(255,255,255,.05)}
+tbody tr:nth-child(odd){background:var(--zebra)}
+tbody tr:hover{background:var(--row-hover)}
+tr.total{font-weight:700;background:var(--total-bg)}
+tbody tr:last-child td{border-bottom:0}
 .barcell{position:relative;min-width:120px}
-.bar{position:absolute;left:0;top:50%;transform:translateY(-50%);height:60%;background:rgba(59,130,246,.35);border-radius:4px;z-index:0}
+.bar{position:absolute;left:0;top:50%;transform:translateY(-50%);height:62%;background:var(--bar-fill);border-radius:4px;z-index:0}
 .barcell span{position:relative;z-index:1}
-.un{color:#f59e0b}.muted{color:var(--muted)}
-details{margin-top:14px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px}
+.un{color:var(--un)}.muted{color:var(--muted)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+details{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;box-shadow:var(--shadow)}
 summary{cursor:pointer;color:var(--muted)}
-code{background:#10131a;padding:1px 5px;border-radius:4px}
+code{background:var(--code-bg);padding:1px 5px;border-radius:4px}
+@media (max-width:640px){
+.charts{grid-template-columns:1fr}
+.card.primary{grid-column:span 1}
+.search{margin-left:0;width:100%}
+.search input{width:100%;min-width:0}
+.wrap{padding:14px}
+}
 '@
 
     $js = @'
@@ -508,44 +554,91 @@ const COLS = [
   ["cache_read","cache_read","num"],["cache_creation","cache_write","num"],["cost","コスト$","cost"],
   ["out_in","out/in","num3"],["cache_rate","cache率","num3"],["cost_per_event","$/件","cost"]
 ];
+const SUN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></svg>';
+const MOON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
+
 let view = REPORT.meta.default_view || "include";
 let tab = "model";
 let sort = {col:"cost", dir:-1};
+let filter = "";
 
-function esc(s){return String(s==null?"":s);}
+const ENT = {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"};
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return ENT[c];});}
 function fmtNum(n){return (n==null)?"-":Number(n).toLocaleString();}
+function fmtCompact(n){
+  if(n==null)return "-";
+  const v=Number(n);
+  try{ return new Intl.NumberFormat(undefined,{notation:"compact",maximumFractionDigits:1}).format(v); }
+  catch(e){ return v.toLocaleString(); }
+}
 function fmtCost(n){return (n==null)?'<span class="un">未割当</span>':("$"+Number(n).toFixed(6));}
 function fmt3(n){return (n==null)?"-":Number(n).toFixed(3);}
+function truncate(s,n){s=String(s==null?"":s);return s.length>n?s.slice(0,n-1)+"…":s;}
 
-function renderSummary(){
-  const s = REPORT.datasets[view].summary;
-  const cards = [
-    ["総コスト (USD)","$"+Number(s.total_cost).toFixed(4)],
-    ["input トークン",fmtNum(s.total_input)],
-    ["output トークン",fmtNum(s.total_output)],
-    ["cache_read トークン",fmtNum(s.total_cache)],
-    ["イベント数",fmtNum(s.event_count)],
-    ["推定節約額 (USD)","$"+Number(s.estimated_savings).toFixed(4)],
-    ["未割当トークン",fmtNum(s.unassigned_tokens)],
-    ["スキップ壊れ行",fmtNum(s.skipped_lines)],
-  ];
-  let h = cards.map(c=>`<div class="card"><div class="k">${esc(c[0])}</div><div class="v">${c[1]}</div></div>`).join("");
-  const um = (s.unassigned_models||[]).filter(m=>m&&m!=="(empty)");
-  const umTxt = (s.unassigned_models&&s.unassigned_models.length)?s.unassigned_models.map(esc).join(", "):"なし";
-  h += `<div class="card"><div class="k">未登録モデル</div><div class="v" style="font-size:13px">${umTxt}</div></div>`;
-  document.getElementById("cards").innerHTML = h;
+/* ---- theme ---- */
+function readTheme(){
+  try{ const t=localStorage.getItem("ttl-theme"); if(t==="light"||t==="dark")return t; }catch(e){}
+  return (window.matchMedia&&window.matchMedia("(prefers-color-scheme: light)").matches)?"light":"dark";
+}
+let theme = readTheme();
+function syncThemeBtn(){
+  const b=document.getElementById("themeToggle");
+  if(!b)return;
+  b.innerHTML=(theme==="light")?MOON:SUN;
+  b.setAttribute("aria-pressed",String(theme==="light"));
+  b.setAttribute("aria-label",(theme==="light")?"ダークテーマに切り替え":"ライトテーマに切り替え");
+}
+function applyTheme(t){
+  theme=t;
+  document.documentElement.setAttribute("data-theme",t);
+  try{ localStorage.setItem("ttl-theme",t); }catch(e){}
+  syncThemeBtn();
+  /* SVGはfill="var(--…)"でCSS変数に追従するため再描画不要 */
+}
+function initTheme(){
+  document.documentElement.setAttribute("data-theme",theme);
+  syncThemeBtn();
+  const b=document.getElementById("themeToggle");
+  if(b)b.onclick=()=>applyTheme(theme==="light"?"dark":"light");
 }
 
-function rowsForTab(){
-  let rows = (REPORT.datasets[view].axes[tab]||[]).slice();
-  const c = sort.col, d = sort.dir;
-  rows.sort((a,b)=>{
+/* ---- summary ---- */
+function card(o){
+  const t = (o.full!=null)?` title="${esc(o.full)}"`:"";
+  return `<div class="card ${o.cls||''}"><div class="k">${esc(o.k)}</div><div class="v ${o.vcls||''}"${t}>${o.v}</div></div>`;
+}
+function renderSummary(){
+  const s = REPORT.datasets[view].summary;
+  const um = (s.unassigned_models||[]).filter(m=>m&&m!=="(empty)");
+  const umTxt = um.length ? um.map(esc).join(", ") : "なし";
+  const cards = [
+    {k:"総コスト (USD)", v:"$"+Number(s.total_cost).toFixed(4), cls:"primary"},
+    {k:"input トークン", v:fmtCompact(s.total_input), full:fmtNum(s.total_input)},
+    {k:"output トークン", v:fmtCompact(s.total_output), full:fmtNum(s.total_output)},
+    {k:"cache_read トークン", v:fmtCompact(s.total_cache), full:fmtNum(s.total_cache)},
+    {k:"イベント数", v:fmtCompact(s.event_count), full:fmtNum(s.event_count)},
+    {k:"推定節約額 (USD)", v:"$"+Number(s.estimated_savings).toFixed(4)},
+    {k:"未割当トークン", v:fmtCompact(s.unassigned_tokens), full:fmtNum(s.unassigned_tokens), vcls:(s.unassigned_tokens>0?"accent-un":"")},
+    {k:"スキップ壊れ行", v:fmtNum(s.skipped_lines)},
+    {k:"未登録モデル", v:`<span style="font-size:13px">${esc(umTxt)}</span>`}
+  ];
+  document.getElementById("cards").innerHTML = cards.map(card).join("");
+}
+
+/* ---- rows ---- */
+function sortRows(rows){
+  const c=sort.col, d=sort.dir;
+  return rows.sort((a,b)=>{
     let x=a[c], y=b[c];
     if(x==null&&y==null)return 0; if(x==null)return 1; if(y==null)return -1;
     if(typeof x==="string")return d*x.localeCompare(y);
     return d*(x-y);
   });
-  return rows;
+}
+function rowsForTab(){
+  let rows = (REPORT.datasets[view].axes[tab]||[]).slice();
+  if(filter){ const f=filter.toLowerCase(); rows = rows.filter(r=>String(r.key==null?"":r.key).toLowerCase().indexOf(f)>=0); }
+  return sortRows(rows);
 }
 
 function renderTable(){
@@ -563,6 +656,7 @@ function renderTable(){
       `<td class="barcell"><div class="bar" style="width:${w}%"></div><span>${fmtCost(r.cost)}</span></td>`+
       `<td>${fmt3(r.out_in)}</td><td>${fmt3(r.cache_rate)}</td><td>${fmtCost(r.cost_per_event)}</td></tr>`;
   }).join("");
+  if(!rows.length){ body = `<tr><td colspan="${COLS.length}" class="muted" style="text-align:center;padding:18px">該当データなし</td></tr>`; }
   const totOutIn = tot.input>0?(tot.output/tot.input):null;
   const totRate = (tot.input+tot.cache_read)>0?(tot.cache_read/(tot.input+tot.cache_read)):null;
   body += `<tr class="total"><td>合計</td><td>${fmtNum(tot.events)}</td><td>${fmtNum(tot.input)}</td><td>${fmtNum(tot.output)}</td><td>${fmtNum(tot.cache_read)}</td><td>${fmtNum(tot.cache_creation)}</td><td>${fmtCost(Number(tot.cost.toFixed(6)))}</td><td>${fmt3(totOutIn)}</td><td>${fmt3(totRate)}</td><td>-</td></tr>`;
@@ -572,21 +666,89 @@ function renderTable(){
     if(sort.col===c){sort.dir*=-1;}else{sort.col=c;sort.dir=(c==="key")?1:-1;}
     renderTable();
   });
+  renderCharts();
 }
 
+/* ---- charts (inline SVG, no external deps) ---- */
+function costChart(rows){
+  const el=document.getElementById("chartCost");
+  if(!el)return;
+  if(!rows.length){ el.innerHTML='<div class="chart-empty">該当データなし</div>'; return; }
+  const W=560, rowH=30, padT=6, padB=6, labelW=170, valW=82;
+  const H=padT+padB+rows.length*rowH;
+  const max=Math.max(1e-12,...rows.map(r=>r.cost||0));
+  const barMax=W-labelW-valW;
+  let svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="表示中の軸のコスト上位内訳">`;
+  rows.forEach((r,i)=>{
+    const y=padT+i*rowH, cy=y+rowH/2, c=r.cost||0;
+    const w=Math.max(0,Math.round(barMax*c/max));
+    const label=esc(truncate(r.key,24)), val=esc("$"+c.toFixed(4));
+    svg+=`<text x="0" y="${cy}" dominant-baseline="middle" font-size="12" fill="var(--fg)">${label}</text>`;
+    svg+=`<rect x="${labelW}" y="${y+5}" width="${barMax}" height="${rowH-10}" rx="4" fill="var(--zebra)"/>`;
+    svg+=`<rect x="${labelW}" y="${y+5}" width="${w}" height="${rowH-10}" rx="4" fill="var(--accent)"><title>${label}: ${val}</title></rect>`;
+    svg+=`<text x="${W}" y="${cy}" dominant-baseline="middle" text-anchor="end" font-size="12" fill="var(--muted)">${val}</text>`;
+  });
+  el.innerHTML=svg+`</svg>`;
+}
+function dailyChart(){
+  const el=document.getElementById("chartDaily");
+  if(!el)return;
+  let daily=(REPORT.datasets[view].axes.daily||[]).slice().filter(r=>/^\d{4}-\d{2}-\d{2}$/.test(String(r.key==null?"":r.key)));
+  daily.sort((a,b)=>String(a.key).localeCompare(String(b.key)));
+  if(!daily.length){ el.innerHTML='<div class="chart-empty">日次データなし</div>'; return; }
+  const W=560, H=200, padL=8, padR=8, padT=10, padB=34;
+  const n=daily.length, max=Math.max(1e-12,...daily.map(r=>r.cost||0));
+  const plotW=W-padL-padR, plotH=H-padT-padB, slot=plotW/n;
+  const bw=Math.max(2,Math.min(40,slot*0.6)), step=Math.max(1,Math.ceil(n/6));
+  let svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="日次コスト推移">`;
+  svg+=`<line x1="${padL}" y1="${padT+plotH}" x2="${W-padR}" y2="${padT+plotH}" stroke="var(--grid)" stroke-width="1"/>`;
+  daily.forEach((r,i)=>{
+    const c=r.cost||0, h=Math.round(plotH*c/max);
+    const x=padL+slot*i+(slot-bw)/2, y=padT+plotH-h, val=esc("$"+c.toFixed(4));
+    svg+=`<rect x="${x.toFixed(1)}" y="${y}" width="${bw.toFixed(1)}" height="${h}" rx="2" fill="var(--accent2)"><title>${esc(r.key)}: ${val}</title></rect>`;
+    if(n<=8 || i===0 || i===n-1 || i%step===0){
+      const lx=padL+slot*i+slot/2;
+      svg+=`<text x="${lx.toFixed(1)}" y="${H-padB+16}" text-anchor="middle" font-size="10" fill="var(--muted)">${esc(String(r.key).slice(5))}</text>`;
+    }
+  });
+  el.innerHTML=svg+`</svg>`;
+}
+function renderCharts(){
+  let rows = rowsForTab().map(r=>({key:r.key, cost:r.cost||0}));
+  rows.sort((a,b)=>b.cost-a.cost);
+  const TOPN=10;
+  if(rows.length>TOPN){
+    const top=rows.slice(0,TOPN);
+    const rest=rows.slice(TOPN).reduce((s,r)=>s+(r.cost||0),0);
+    top.push({key:"その他 ("+(rows.length-TOPN)+")", cost:rest});
+    rows=top;
+  }
+  costChart(rows);
+  dailyChart();
+}
+
+/* ---- controls ---- */
+function syncSearch(){
+  const wrap=document.getElementById("searchWrap");
+  if(wrap)wrap.style.display=(tab==="daily"||tab==="tool")?"none":"";
+}
 function renderTabs(){
-  document.getElementById("tabs").innerHTML = AXES.map(a=>`<button class="tab ${tab===a[0]?'active':''}" data-t="${a[0]}">${esc(a[1])}</button>`).join("");
-  document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{tab=b.getAttribute("data-t");renderTabs();renderTable();});
+  document.getElementById("tabs").innerHTML = AXES.map(a=>`<button class="tab ${tab===a[0]?'active':''}" role="tab" aria-selected="${tab===a[0]}" data-t="${a[0]}">${esc(a[1])}</button>`).join("");
+  document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{tab=b.getAttribute("data-t");renderTabs();syncSearch();renderTable();});
 }
-
 function renderToggle(){
   const b=document.getElementById("subToggle");
   b.className="toggle "+(view==="include"?"active":"");
   b.textContent = view==="include"?"サブエージェント: 含む":"サブエージェント: 除く";
+  b.setAttribute("aria-pressed",String(view==="include"));
   b.onclick=()=>{view=(view==="include")?"exclude":"include";renderToggle();renderSummary();renderTable();};
 }
+function initSearch(){
+  const inp=document.getElementById("tableSearch");
+  if(inp)inp.addEventListener("input",()=>{filter=inp.value.trim();renderTable();});
+}
 
-renderToggle();renderSummary();renderTabs();renderTable();
+initTheme();renderToggle();renderSummary();renderTabs();syncSearch();initSearch();renderTable();
 '@
 
     $genAt = $Report.meta.generated_at
@@ -603,21 +765,40 @@ renderToggle();renderSummary();renderTabs();renderTable();
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Token Usage Report</title>
+<script>
+(function(){try{var t=localStorage.getItem("ttl-theme");if(t!=="light"&&t!=="dark"){t=(window.matchMedia&&window.matchMedia("(prefers-color-scheme: light)").matches)?"light":"dark";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();
+</script>
 <style>$css</style>
 </head>
 <body>
 <header>
-  <h1>AIエージェント トークン消費レポート</h1>
-  <div class="meta">生成: $genAt ・ 対象件数: $cnt ・ 単価 effective_date: $eff ・ TZ: $tz</div>
-  <div class="meta">対象ルート: $rootsHtml</div>
+  <div class="head-main">
+    <h1>AIエージェント トークン消費レポート</h1>
+    <div class="meta">
+      <span class="chip">生成<b>$genAt</b></span>
+      <span class="chip">対象件数<b>$cnt</b></span>
+      <span class="chip">単価日<b>$eff</b></span>
+      <span class="chip">TZ<b>$tz</b></span>
+      <span class="chip">ルート<b>$rootsHtml</b></span>
+    </div>
+  </div>
+  <button id="themeToggle" class="icon-btn" type="button" aria-label="テーマ切り替え"></button>
 </header>
 <div class="wrap">
   <div id="cards" class="cards"></div>
-  <div class="controls">
-    <div id="tabs" class="tabs"></div>
-    <button id="subToggle" class="toggle"></button>
+  <div class="charts">
+    <div class="chartbox"><h2>コスト内訳（表示中の軸・上位）</h2><div id="chartCost"></div></div>
+    <div class="chartbox"><h2>日次コスト推移</h2><div id="chartDaily"></div></div>
   </div>
-  <div id="table"></div>
+  <div class="controls">
+    <div id="tabs" class="tabs" role="tablist"></div>
+    <button id="subToggle" class="toggle" type="button"></button>
+    <div id="searchWrap" class="search">
+      <label for="tableSearch" class="sr-only">名前で絞り込み</label>
+      <input id="tableSearch" type="search" placeholder="名前で絞り込み…" autocomplete="off">
+    </div>
+  </div>
+  <div class="tablewrap"><div id="table"></div></div>
   <details><summary>このレポートについて</summary>
     <p class="muted">PowerShell の <code>collect.ps1</code> がローカルログを解析・集計し、結果を JSON として
     埋め込んだ自己完結 HTML です。Webサーバ不要・外部リクエストなしで動作します。
