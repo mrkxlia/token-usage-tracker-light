@@ -1,0 +1,7 @@
+# 生成物（誤コミット防止）— ルート直下の HTML レポート
+/*.html
+report.html
+
+# OS / エディタ
+.DS_Store
+Thumbs.db

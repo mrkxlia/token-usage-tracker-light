@@ -1,0 +1,1 @@
+{"type":"assistant","sessionId":"sess-claude-1","agentId":"agent-1","cwd":"/home/u/repoA","gitBranch":"main","timestamp":"2026-06-15T01:30:00Z","message":{"id":"msg_B","model":"claude-opus-4-8","usage":{"input_tokens":200,"output_tokens":100,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}
