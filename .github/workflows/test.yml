@@ -1,0 +1,39 @@
+name: tests
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+
+jobs:
+  pester:
+    runs-on: ubuntu-latest   # pwsh 同梱
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Pester v5
+        shell: pwsh
+        run: |
+          Set-PSRepository PSGallery -InstallationPolicy Trusted
+          Install-Module Pester -MinimumVersion 5.0.0 -Force -Scope CurrentUser -SkipPublisherCheck
+
+      - name: Run Pester
+        shell: pwsh
+        run: |
+          Import-Module Pester -MinimumVersion 5.0.0
+          $c = New-PesterConfiguration
+          $c.Run.Path = './tests/collect.Tests.ps1'
+          $c.Run.Exit = $true
+          $c.Output.Verbosity = 'Detailed'
+          Invoke-Pester -Configuration $c
+
+      - name: Smoke-test report generation
+        shell: pwsh
+        run: |
+          pwsh -File ./collect.ps1 `
+            -ClaudeRoot tests/fixtures/claude_projects `
+            -CodexRoot  tests/fixtures/codex_sessions `
+            -ClineRoot  tests/fixtures/cline_tasks `
+            -OutFile    ./_ci_report.html `
+            -PricingPath ./pricing.json
+          if (-not (Test-Path ./_ci_report.html)) { throw 'report not generated' }

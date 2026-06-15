@@ -1,0 +1,4 @@
+[
+  {"role":"user","content":"no model identifier appears anywhere in this task"},
+  {"role":"assistant","content":"so the model stays unassigned"}
+]

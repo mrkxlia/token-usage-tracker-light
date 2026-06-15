@@ -1,0 +1,7 @@
+{"type":"session_meta","timestamp":"2026-06-15T01:00:00Z","payload":{"id":"sess-codex-1","cwd":"/home/u/repoB"}}
+{"type":"turn_context","payload":{"model":"gpt-5"}}
+{"type":"event_msg","timestamp":"2026-06-15T01:00:00Z","payload":{"type":"token_count","info":{"last_token_usage":{"input_tokens":1000,"cached_input_tokens":200,"output_tokens":300,"reasoning_output_tokens":50,"total_tokens":1300},"total_token_usage":{"input_tokens":1000,"cached_input_tokens":200,"output_tokens":300,"reasoning_output_tokens":50,"total_tokens":1300}}}}
+{"type":"event_msg","timestamp":"2026-06-15T01:02:00Z","payload":{"type":"agent_message","message":"a non-token_count event_msg that must not advance the index"}}
+{"type":"turn_context","payload":{"model":"gpt-5-mini"}}
+{"type":"event_msg","timestamp":"2026-06-15T01:05:00Z","payload":{"type":"token_count","info":{"last_token_usage":{"input_tokens":500,"cached_input_tokens":0,"output_tokens":100,"reasoning_output_tokens":0,"total_tokens":600},"total_token_usage":{"input_tokens":1500,"cached_input_tokens":200,"output_tokens":400,"reasoning_output_tokens":50,"total_tokens":1900}}}}
+broken codex line to be skipped
