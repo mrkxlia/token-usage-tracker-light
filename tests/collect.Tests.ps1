@@ -154,6 +154,51 @@ Describe 'Get-UsageCost' {
     }
 }
 
+Describe 'Edge cases' {
+    It 'aggregates an empty record set to a zeroed summary' {
+        $s = New-Summary -Records @() -Pricing $script:Pricing
+        $s.event_count       | Should -Be 0
+        $s.total_cost        | Should -Be 0
+        $s.unassigned_tokens | Should -Be 0
+        @(Merge-UsageRecords -Records @()).Count | Should -Be 0
+    }
+    It 'reports unassigned tokens/models for unknown models (no cost)' {
+        $r = New-UsageRecord
+        $r.model = 'totally-unknown-model'; $r.input = 100; $r.output = 50
+        $s = New-Summary -Records @($r) -Pricing $script:Pricing
+        $s.total_cost        | Should -Be 0
+        $s.unassigned_tokens | Should -Be 150   # 100 + 50
+        $s.unassigned_models | Should -Contain 'totally-unknown-model'
+    }
+    It 'counts a broken JSON line in SkippedLineCount' {
+        $script:SkippedLineCount = 0
+        ConvertFrom-JsonLineSafe '{ this is not json' | Should -BeNullOrEmpty
+        $script:SkippedLineCount | Should -Be 1
+    }
+    It 'does NOT count a whole-file ui_messages.json parse failure as a broken line (A3)' {
+        $tmp  = Join-Path ([System.IO.Path]::GetTempPath()) ('cline-{0}' -f ([guid]::NewGuid()))
+        $task = Join-Path $tmp 'task-broken'
+        New-Item -ItemType Directory -Path $task -Force | Out-Null
+        Set-Content -Path (Join-Path $task 'ui_messages.json') -Value '{ not valid json' -Encoding UTF8
+        $script:SkippedLineCount = 0
+        @(Read-ClineLogs -Root $tmp).Count | Should -Be 0
+        $script:SkippedLineCount | Should -Be 0   # ファイル単位の欠損は「壊れ行」に数えない
+        Remove-Item $tmp -Recurse -ErrorAction SilentlyContinue
+    }
+    It 'buckets blank timestamp and invalid Tz to (no date)' {
+        Get-DayBucket '' '+09:00'                  | Should -Be '(no date)'
+        Get-DayBucket '2026-06-15T00:00:00Z' 'bad' | Should -Be '(no date)'
+    }
+    It 'memoizes model resolution incl. unknown ($null) results' {
+        $p = Import-PricingTable -PricingPath (Join-Path $PSScriptRoot '..' 'pricing.json')
+        (Resolve-ModelPricing -Model 'claude-opus-4-8' -Pricing $p).output | Should -Be 25.0
+        $p.cache.ContainsKey('claude-opus-4-8') | Should -BeTrue
+        Resolve-ModelPricing -Model 'nope-model' -Pricing $p | Should -BeNullOrEmpty
+        $p.cache.ContainsKey('nope-model') | Should -BeTrue           # $null も記録される
+        (Resolve-ModelPricing -Model 'claude-opus-4-8' -Pricing $p).output | Should -Be 25.0  # 2回目はキャッシュ経由
+    }
+}
+
 Describe 'New-ReportHtml' {
     BeforeAll {
         $recs = @(Merge-UsageRecords -Records (

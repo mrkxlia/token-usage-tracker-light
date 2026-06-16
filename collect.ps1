@@ -35,7 +35,9 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# 壊れ行スキップ数（Invoke-Main でリセット、サマリーに表示）
+# 壊れ JSONL 行（=パース不能な 1 行 / 1 レコード候補）のスキップ数。
+# ファイル全体のパース失敗（例: Cline の ui_messages.json）は「行」ではないため加算しない。
+# Invoke-Main でリセットし、サマリーに表示する。
 $script:SkippedLineCount = 0
 
 # 単価は「100万トークンあたりUSD」で定義されるため、コスト算出時にこの値で除算する
@@ -166,18 +168,30 @@ function Import-PricingTable {
         aliases        = $aliases
         models         = $models
         path           = $path
+        # モデル名 → 解決済み単価（未登録は $null）のメモ。Resolve-ModelPricing が
+        # 同一モデルの再解決（alias 適用・日付サフィックス除去の正規表現）を繰り返さないため。
+        cache          = (New-Object 'System.Collections.Hashtable' ([System.StringComparer]::OrdinalIgnoreCase))
     }
 }
 
 function Resolve-ModelPricing {
     param([string]$Model, $Pricing)
     if ([string]::IsNullOrWhiteSpace($Model)) { return $null }
+    $cache = Get-Prop $Pricing 'cache'
+    if ($null -ne $cache -and $cache.ContainsKey($Model)) { return $cache[$Model] }
+
     $m = $Model
     if ($Pricing.aliases.ContainsKey($m)) { $m = [string]$Pricing.aliases[$m] }
-    if ($Pricing.models.ContainsKey($m)) { return $Pricing.models[$m] }
-    $stripped = [regex]::Replace($m, '-\d{8}$', '')
-    if ($stripped -ne $m -and $Pricing.models.ContainsKey($stripped)) { return $Pricing.models[$stripped] }
-    return $null
+    $result = $null
+    if ($Pricing.models.ContainsKey($m)) {
+        $result = $Pricing.models[$m]
+    } else {
+        $stripped = [regex]::Replace($m, '-\d{8}$', '')
+        if ($stripped -ne $m -and $Pricing.models.ContainsKey($stripped)) { $result = $Pricing.models[$stripped] }
+    }
+    # 未登録（$null）も記録しておき、再解決の正規表現を省く。ContainsKey で $null と区別する。
+    if ($null -ne $cache) { $cache[$Model] = $result }
+    return $result
 }
 
 function Get-UsageCost {
@@ -313,7 +327,10 @@ function Read-ClineLogs {
             if ($m.Success) { $model = $m.Value }
         }
 
-        $ui = ConvertFrom-JsonLineSafe (Get-Content $uiPath -Raw -Encoding UTF8)
+        # ui_messages.json はファイル全体が 1 つの JSON。失敗は「壊れ行」ではなく
+        # ファイル単位の欠損なので SkippedLineCount は加算しない（task_metadata.json と同様）。
+        $ui = $null
+        try { $ui = (Get-Content $uiPath -Raw -Encoding UTF8) | ConvertFrom-Json -Depth 64 } catch { $ui = $null }
         if ($null -eq $ui) { continue }
         $idx = 0
         foreach ($e in @($ui)) {
