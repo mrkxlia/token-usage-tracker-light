@@ -38,6 +38,9 @@ $ErrorActionPreference = 'Stop'
 # 壊れ行スキップ数（Invoke-Main でリセット、サマリーに表示）
 $script:SkippedLineCount = 0
 
+# 単価は「100万トークンあたりUSD」で定義されるため、コスト算出時にこの値で除算する
+$script:TokensPerMillion = 1e6
+
 # ---------------------------------------------------------------------------
 # 小ユーティリティ
 # ---------------------------------------------------------------------------
@@ -95,6 +98,23 @@ function ConvertFrom-JsonLine {
     return ($Line | ConvertFrom-Json -Depth 64)
 }
 
+# 1行JSONを安全にパースする。失敗時は壊れ行カウンタを進めて $null を返す
+# （呼び出し側は戻り値の null 判定だけで continue できる）。
+function ConvertFrom-JsonLineSafe {
+    param([string]$Line)
+    try { return (ConvertFrom-JsonLine $Line) }
+    catch { $script:SkippedLineCount++; return $null }
+}
+
+# 渡された候補のうち最初の非空文字列を返す（複数キーのフォールバック解決用）。
+function Get-FirstNonEmpty {
+    param([string[]]$Values)
+    foreach ($v in $Values) {
+        if (-not [string]::IsNullOrEmpty($v)) { return $v }
+    }
+    return ''
+}
+
 function New-UsageRecord {
     [pscustomobject]@{
         source            = ''
@@ -109,7 +129,6 @@ function New-UsageRecord {
         cache_creation_5m = 0
         cache_read        = 0
         repo_path         = ''
-        git_branch        = ''
         is_subagent       = $false
     }
 }
@@ -172,7 +191,7 @@ function Get-UsageCost {
         [double]$Record.cache_creation_1h * [double](Get-Prop $price 'cache_write_1h' 0) +
         [double]$Record.cache_creation_5m * [double](Get-Prop $price 'cache_write_5m' 0) +
         [double]$Record.cache_read        * [double](Get-Prop $price 'cache_read' 0)
-    ) / 1e6
+    ) / $script:TokensPerMillion
     return $cost
 }
 
@@ -187,7 +206,8 @@ function Read-ClaudeLogs {
         $isSub = ($file.FullName -match '[\\/]subagents[\\/]')
         foreach ($line in [System.IO.File]::ReadAllLines($file.FullName)) {
             if ([string]::IsNullOrWhiteSpace($line)) { continue }
-            try { $obj = ConvertFrom-JsonLine $line } catch { $script:SkippedLineCount++; continue }
+            $obj = ConvertFrom-JsonLineSafe $line
+            if ($null -eq $obj) { continue }
             if ((Get-Prop $obj 'type') -ne 'assistant') { continue }
             $msg = Get-Prop $obj 'message'
             $usage = Get-Prop $msg 'usage'
@@ -211,7 +231,6 @@ function Read-ClaudeLogs {
                 $rec.cache_creation_5m = [int](Get-Prop $usage 'cache_creation_input_tokens' 0)
             }
             $rec.repo_path   = Get-Prop $obj 'cwd' ''
-            $rec.git_branch  = Get-Prop $obj 'gitBranch' ''
             $rec.is_subagent = $isSub
             Write-Output $rec
         }
@@ -226,7 +245,8 @@ function Read-CodexLogs {
         $sessionId = ''; $cwd = ''; $model = ''; $tokenIndex = 0
         foreach ($line in [System.IO.File]::ReadAllLines($file.FullName)) {
             if ([string]::IsNullOrWhiteSpace($line)) { continue }
-            try { $obj = ConvertFrom-JsonLine $line } catch { $script:SkippedLineCount++; continue }
+            $obj = ConvertFrom-JsonLineSafe $line
+            if ($null -eq $obj) { continue }
             $type = Get-Prop $obj 'type'
             $payload = Get-Prop $obj 'payload'
             switch ($type) {
@@ -279,24 +299,28 @@ function Read-ClineLogs {
         if (Test-Path $metaPath) {
             try { $meta = (Get-Content $metaPath -Raw -Encoding UTF8) | ConvertFrom-Json -Depth 64 } catch { $meta = $null }
         }
-        $repo = Get-Prop $meta 'cwdOnTaskInitialization' ''
-        if ([string]::IsNullOrEmpty($repo)) { $repo = Get-Prop $meta 'shadowGitConfigWorkTree' '' }
+        $repo = Get-FirstNonEmpty @(
+            (Get-Prop $meta 'cwdOnTaskInitialization' ''),
+            (Get-Prop $meta 'shadowGitConfigWorkTree' ''))
 
-        $model = Get-Prop $meta 'model' ''
-        if ([string]::IsNullOrEmpty($model)) { $model = Get-Prop $meta 'apiModelId' '' }
-        if ([string]::IsNullOrEmpty($model)) { $model = Get-Prop $meta 'modelId' '' }
+        $model = Get-FirstNonEmpty @(
+            (Get-Prop $meta 'model' ''),
+            (Get-Prop $meta 'apiModelId' ''),
+            (Get-Prop $meta 'modelId' ''))
         if ([string]::IsNullOrEmpty($model) -and (Test-Path $histPath)) {
             $hist = Get-Content $histPath -Raw -Encoding UTF8
             $m = [regex]::Match($hist, '\b(claude-[\w.-]+|gpt-[\w.-]+|o\d[\w.-]*)\b')
             if ($m.Success) { $model = $m.Value }
         }
 
-        try { $ui = (Get-Content $uiPath -Raw -Encoding UTF8) | ConvertFrom-Json -Depth 64 } catch { $script:SkippedLineCount++; continue }
+        $ui = ConvertFrom-JsonLineSafe (Get-Content $uiPath -Raw -Encoding UTF8)
+        if ($null -eq $ui) { continue }
         $idx = 0
         foreach ($e in @($ui)) {
             if ((Get-Prop $e 'say') -ne 'api_req_started') { continue }
             $text = Get-Prop $e 'text' ''
-            try { $t = $text | ConvertFrom-Json -Depth 64 } catch { $script:SkippedLineCount++; continue }
+            $t = ConvertFrom-JsonLineSafe $text
+            if ($null -eq $t) { continue }
 
             $rec = New-UsageRecord
             $rec.source            = 'cline'
@@ -401,7 +425,7 @@ function New-Summary {
             $tcost += $c
             $price = Resolve-ModelPricing -Model $r.model -Pricing $Pricing
             if ($price) {
-                $sv = [int]$r.cache_read * ([double](Get-Prop $price 'input' 0) - [double](Get-Prop $price 'cache_read' 0)) / 1e6
+                $sv = [int]$r.cache_read * ([double](Get-Prop $price 'input' 0) - [double](Get-Prop $price 'cache_read' 0)) / $script:TokensPerMillion
                 if ($sv -gt 0) { $savings += $sv }
             }
         }
