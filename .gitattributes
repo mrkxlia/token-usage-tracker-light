@@ -1,0 +1,8 @@
+# Windows PowerShell 5.1 向け: .ps1 は CRLF 改行で取得する。
+# 本文は BOM 付き UTF-8 でコミットしており、BOM バイトはそのまま保持される
+# （eol 正規化は改行のみに作用し BOM には触れない）。
+*.ps1 text eol=crlf
+
+# データ・ドキュメント
+*.json text eol=lf
+*.md   text eol=crlf

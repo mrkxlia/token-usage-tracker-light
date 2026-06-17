@@ -1,4 +1,4 @@
-# Pester v5 tests for collect.ps1
+﻿# Pester v5 tests for collect.ps1
 #
 # 期待値はすべて tests/fixtures の固定ログから手計算したもの（出どころを各 It にコメント）。
 # fixtures は「固定・以後不変」。値を変える場合はここの期待値も連動して更新すること。

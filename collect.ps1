@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 <#
 .SYNOPSIS
     AIエージェント（Claude Code / Codex CLI / Cline）のローカルログを解析し、
@@ -95,7 +95,7 @@ function Get-DayBucket {
 
 function ConvertFrom-JsonLine {
     param([string]$Line)
-    return ($Line | ConvertFrom-Json -Depth 64)
+    return ($Line | ConvertFrom-Json)
 }
 
 # 1行JSONを安全にパースする。失敗時は壊れ行カウンタを進めて $null を返す
@@ -149,7 +149,7 @@ function Import-PricingTable {
     if (-not $path) { throw "pricing.json が見つかりません（探索: $($candidates -join ', ')）" }
 
     $raw = Get-Content -Path $path -Raw -Encoding UTF8
-    $obj = $raw | ConvertFrom-Json -Depth 64
+    $obj = $raw | ConvertFrom-Json
 
     $aliases = New-Object 'System.Collections.Hashtable' ([System.StringComparer]::OrdinalIgnoreCase)
     $aProp = $obj.PSObject.Properties['aliases']
@@ -297,7 +297,7 @@ function Read-ClineLogs {
 
         $meta = $null
         if (Test-Path $metaPath) {
-            try { $meta = (Get-Content $metaPath -Raw -Encoding UTF8) | ConvertFrom-Json -Depth 64 } catch { $meta = $null }
+            try { $meta = (Get-Content $metaPath -Raw -Encoding UTF8) | ConvertFrom-Json } catch { $meta = $null }
         }
         $repo = Get-FirstNonEmpty @(
             (Get-Prop $meta 'cwdOnTaskInitialization' ''),
